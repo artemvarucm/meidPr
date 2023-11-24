@@ -1,0 +1,1 @@
+# 7. Regresion multiple PLS, PCR (5to y 6to modelos)
