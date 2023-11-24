@@ -7,7 +7,7 @@ library(lmtest) # test homoscedasticidad
 library(MASS) # box-cox
 library(leaps) # regsubsets
 
-datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
+datos <- read.table(file = "./Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
 # IMPORTANTE CUASIVARIANZA O VARIANZA
 dim(datos)
