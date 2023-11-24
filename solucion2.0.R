@@ -5,7 +5,14 @@ library(lmtest) # test homoscedasticidad
 library(MASS) # box-cox
 library(leaps) # regsubsets
 
-
+# Aqui uniremos los archivos en el siguiente orden
+# importYpreprocess
+# autocorrelaciones
+# RLM_FULL
+# RLM_BEST
+# RLM_REGULAR
+# PLS-PCR
+# LOGISTICA
 
 
 # Anadir en la memoria una tabla asi, cogiendo como mejor el modelo con el menor error, 
