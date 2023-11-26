@@ -68,7 +68,6 @@ predict.regsubsets <- function(object, newdata, id,...){
   mat[,xvars]%*%coefi
 }
 
-
 # Nos quedamos solo con columnas numericas sin autocorrelacion
 data_train.solo.num = data_train[, cols.sin.autocorr]
 
@@ -101,7 +100,10 @@ mean.cv.errors
 which.min(mean.cv.errors)
 min.err.betas = coef(best.fit, which.min(mean.cv.errors))
 # Modelo con which.min(mean.cv.errors) variables
-RLM_regsubsets = lm(Total.Household.Income ~ ., data=data_train.solo.num[, c("Total.Household.Income", names(min.err.betas[-1] ))]) # quitamos intercept
+data.regsubsets = data_train.solo.num[, c("Total.Household.Income", names(min.err.betas[-1] ))] # quitamos intercept
+
+RLM_regsubsets = lm(Total.Household.Income ~ ., data=data.regsubsets) 
+
 # predecimos
 # Intentamos predecir (error sobre data_test)
 RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
@@ -135,7 +137,7 @@ dwtest(RLM_regsubsets)
 rest=rstudent(RLM_regsubsets) # calculamos los residuos estudentizados
 outliers=c(which(rest>3),which(rest<(-3)))
 
-datos_sin_out=data_train.solo.num[-outliers, ]
+datos_sin_out=data.regsubsets[-outliers, ]
 
 rownames(datos_sin_out)=1:nrow(datos_sin_out) #renombramos indices
 
@@ -158,14 +160,37 @@ dwtest(RLM_regsubsets.sin.out)
 # No han cambiado los resultados
 
 # ? 5.6 Realizamos transformacion BOX-COX
-x<-datos_sin_out$Total.Household.Income
+data.copy.new.regsubsets = data.regsubsets
+# Predice bien, si realizamos este filtro, que me parece bastante MAL
+# data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income < 100000,]
+
+x<-data.copy.new.regsubsets$Total.Household.Income
 b<-boxcox(lm(x~1))
 lambda<-b$x[which.max(b$y)]
 # El valor de lambda que usaremos
 lambda
 ynew<-(x^lambda-1)/lambda # transformamos la variable respuesta
-datos_sin_out$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
-RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=datos_sin_out) # formamos nuevo modelo
+
+skewness(ynew) # - simetrica
+
+boxplot(ynew) # entre 4.5 y 5.1
+# Lo de abajo de IQR EMPEORA el resultado
+IQR = quantile(ynew, 0.75) - quantile(ynew, 0.25)
+# Limite inferior
+lowerBound = quantile(ynew, 0.25) - 1.5*IQR
+# Limite superior
+upperBound = quantile(ynew, 0.75) + 1.5*IQR
+
+data.copy.new.regsubsets$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
+data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income < upperBound, ]
+data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income > lowerBound, ]
+
+RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.new.regsubsets) # formamos nuevo modelo
+
+
+
+
+
 
 # ? 5.7 Volvemos a Realizar tests de normalidad, homoscedasticidad y autocorrelacion 
 #estudiamos la normalidad en los residuos
@@ -180,8 +205,9 @@ dwtest(RLM_regsubsets.box.cox)
 
 # 5.8 Calculamos el error cuadratico medio del modelo hallado
 # Error cuadratico medio del modelo sobre TEST
-RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-
+# gracias al abs, no da NA, y tampoco afecta, pues el salario es siempre positivo
+# Si no, da error NA por intentar hacer raices pares sobre un termino negativo
+RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
 RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
 RLM_regsubsets.error # 361146.9
 
