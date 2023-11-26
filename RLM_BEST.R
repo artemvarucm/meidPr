@@ -139,23 +139,24 @@ datos_sin_out=data_train.solo.num[-outliers, ]
 
 rownames(datos_sin_out)=1:nrow(datos_sin_out) #renombramos indices
 
-best.RLM <- lm(Total.Household.Income ~ ., data=datos_sin_out)
+RLM_regsubsets.sin.out <- lm(Total.Household.Income ~ ., data=datos_sin_out)
 
 # ? 5.5 Volvemos a Realizar tests de normalidad, homoscedasticidad y autocorrelacion
 #estudiamos la normalidad en los residuos
 # box-plot no funciona para distribuciones asimetricas (analizar skewness si esta fuera de (-2, 2) es asimetrica )
-install.packages("moments")
-library(moments)
-skewness(best.RLM)
+#install.packages("moments")
+#library(moments)
+#skewness(best.RLM)
 
-residuos<-best.RLM$residuals
+residuos<-RLM_regsubsets.sin.out$residuals
 lillie.test(residuos)
 #homocedatsicidad
-bptest(best.RLM)
+bptest(RLM_regsubsets.sin.out)
 ##independencia
-dwtest(best.RLM)
+dwtest(RLM_regsubsets.sin.out)
 
-############### CONTINUAR O NO - DEPENDE DEL RESULTADO DE TESTS
+# No han cambiado los resultados
+
 # ? 5.6 Realizamos transformacion BOX-COX
 x<-datos_sin_out$Total.Household.Income
 b<-boxcox(lm(x~1))
@@ -164,23 +165,32 @@ lambda<-b$x[which.max(b$y)]
 lambda
 ynew<-(x^lambda-1)/lambda # transformamos la variable respuesta
 datos_sin_out$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
-best.RLM <- lm(Total.Household.Income ~ ., data=datos_sin_out) # formamos nuevo modelo
+RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=datos_sin_out) # formamos nuevo modelo
 
 # ? 5.7 Volvemos a Realizar tests de normalidad, homoscedasticidad y autocorrelacion 
 #estudiamos la normalidad en los residuos
-residuos<-best.RLM$residuals
+residuos<-RLM_regsubsets.box.cox$residuals
 lillie.test(residuos)
 #homocedatsicidad
-bptest(best.RLM)
+bptest(RLM_regsubsets.box.cox)
 ##independencia
-dwtest(best.RLM)
+dwtest(RLM_regsubsets.box.cox)
 ############### FIN PARTE DEPENDIENTE
 
 
 # 5.8 Calculamos el error cuadratico medio del modelo hallado
-# Error cuadratico medio del modelo sobre TRAIN
-(sigmaTrainRLM = summary(best.RLM)$sigma) 
 # Error cuadratico medio del modelo sobre TEST
-yPredictRLM = (predict(best.RLM,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-(sigmaTestRLM = (sum((data_test$Total.Household.Income - yPredictRLM) ^ 2)/length(yPredictRLM)) ^ 0.5)
+RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
+
+RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
+RLM_regsubsets.error # 361146.9
+
+# Error cuadratico medio del modelo sobre modelo Completo
+RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,datos) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
+RLM_regsubsets.error = sqrt(sum((datos$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
+RLM_regsubsets.error # 385657.2
+# ERROR COSMICO...
+
+
+
 
