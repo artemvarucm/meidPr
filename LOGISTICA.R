@@ -85,10 +85,21 @@ glm.probs<-predict(glm.fits,type="response")
 glm.probs[1:10]
 Income = datos.log$Total.Household.Income
 contrasts(Income)
-glm.pred<-rep("Deny",length(Income)) #Crea un vector con 1250 elementos "Down"
-glm.pred[glm.probs>.5]="Accept" #Transforma en Up todos los elementos donde la probabilidad predicha>0.5
+glm.pred<-rep("Accept",length(Income)) #Crea un vector con 1250 elementos "Down"
+glm.pred[glm.probs>.5]="Deny" #Transforma en Up todos los elementos donde la probabilidad predicha>0.5
 
 #install.packages("caret") #si no se ha instalado previamente
 library(caret)
 glm.pred<-as.factor(glm.pred)
 confusionMatrix(glm.pred,Income)
+
+
+
+# Usar estadisticos asociados
+# Podemos usar el error cuadratico medio porque hay dos variables. 0 - una categoria, 1 - otra categoria
+
+
+
+
+
+
