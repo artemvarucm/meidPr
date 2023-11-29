@@ -217,6 +217,9 @@ RLM_regsubsets.error = sqrt(sum((datos$Total.Household.Income - RLM_regsubsets.p
 RLM_regsubsets.error # 385657.2
 # ERROR COSMICO...
 
-
+# residualPlot
+# library(car)
+# influencePlot(RLM_model)
+# outlier.test
 
 

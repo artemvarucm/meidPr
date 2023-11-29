@@ -11,7 +11,8 @@ length(datos.solo.num)
 # IMPORTANTE: por que usamos coeficiente de correlacion de SPEARMAN ? 
 
 # Quitamos la variable respuesta
-datos.sin.autocorr =  datos.solo.num[, -1]
+indR = grep("Total.Household.Income", colnames(datos.solo.num))
+datos.sin.autocorr =  datos.solo.num[, -indR]
 
 # Mapa de calor de las autocorrelaciones
 heatmap(cor(datos.sin.autocorr, method="spearman"))
