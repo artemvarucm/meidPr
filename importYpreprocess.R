@@ -7,7 +7,7 @@ library(lmtest) # test homoscedasticidad
 library(MASS) # box-cox
 library(leaps) # regsubsets
 library(moments) # skewness
-datos <- read.table(file = "./Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
+datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/meidPr/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
 # IMPORTANTE CUASIVARIANZA O VARIANZA
 dim(datos)
@@ -43,12 +43,16 @@ sum(!complete.cases(datos)) # 3355
 sum(!complete.cases(datos[,-c(31, 32)])) # 0
 datos = datos[,-c(31, 32)] # quitamos columnas con N/A
 #datos = datos[complete.cases(datos),]
-par(mfrow=c(1, 5))
-for (x in colnames(datos)) {
-  if (!is.numeric(datos[, x])) {
-    barplot(table(datos[, x]), las=2, legend=TRUE)
-  }
-}
+
+# Histogramas y diagramas barras
+# par(mfrow=c(1, 5))
+# for (x in colnames(datos)) {
+#   if (!is.numeric(datos[, x])) {
+#     barplot(table(datos[, x]), las=2, legend=TRUE)
+#   }
+# }
+
+
 # Seleccionamos las columnas numericas solo
 datos.solo.num = datos[sapply(datos, is.numeric)]
 

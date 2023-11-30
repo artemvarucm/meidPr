@@ -1,7 +1,7 @@
 
 # 3. Regresion multiple para el conjunto completo (sin columnas categoricas ni nominales) (modelo 0)
 # Tambien estan las autocorrelacionadas aqui
-RLM_FULL = lm(Total.Household.Income ~ ., data=datos.solo.num)
+RLM_FULL = lm(Total.Household.Income ~ ., data=datos.sin.out)
 
 # 3.1 Analisis de los p-valores con summary(modeloFull)
 summary(RLM_FULL)

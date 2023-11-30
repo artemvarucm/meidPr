@@ -1,3 +1,4 @@
+library(olsrr) # para cp de mallows
 
 # 4. Separamos los datos en train y test (80/20, 75/25, 70/30...)
 # test se guarda para el final
@@ -79,25 +80,23 @@ predict.regsubsets <- function(object, newdata, id,...){
 data_train.solo.num = data_train#[, cols.sin.autocorr]
 
 n <- nrow(data_train.solo.num) 
-k <- 5 #número de grupos igual a n # aqui poner 5 porque lo dijo la profe...
+k <- 4 # número de grupos, 4 porque se queda con 26 variables en vez de 40
+
 set.seed(5)
 # asigna a cada fila de da  ta train un grupo
 folds <- sample(x=1:k, size=nrow(data_train.solo.num), replace = TRUE)
-# IMPORTANTE: REEEMPLAZAR 20 despues
-cv.errors <- matrix(NA, k, 40, dimnames = list(NULL,paste(1:40)))
+
+# Realizamos regsubsets(construccion del modelo mediante foreward, backward...)
+numVars = dim(data_train.solo.num)[2] - 1 # restamos 1 por la variable respuesta, solo cuenta las explicativas
+cv.errors <- matrix(NA, k, numVars, dimnames = list(NULL,paste(1:numVars)))
 # betas para el modelo con minimo error
 for (j in 1:k){
   # j es el grupo que dejamos fuera del conjunto de entrenar
-  best.fit <- regsubsets(Total.Household.Income~., data=data_train.solo.num[folds !=j,], nvmax = 40) # comprobado con 42, el de 16 es el mejor
-  for (i in 1:40){ # hay un limite en regsubsets de 8 variables
+  best.fit <- regsubsets(Total.Household.Income~., data=data_train.solo.num[folds !=j,], nvmax = numVars)
+  for (i in 1:numVars){ # hay un limite en regsubsets de 8 variables
     pred <- predict.regsubsets(best.fit, newdata=data_train.solo.num[folds==j,], id=i) #datos de test
     cv.errors[j,i] <- (mean((data_train.solo.num$Total.Household.Income[folds == j]-pred)^2)) ^ 0.5
   }
-  
-  #cv.errors
-  #mean.cv.errors <- apply(cv.errors, 2, mean) #calcula la media de los betas_i
-  #mean.cv.errors
-  #min.err.betas = coef(best.fit, which.min(mean.cv.errors))
 }  
 # Raices cuadradas de errores
 cv.errors  

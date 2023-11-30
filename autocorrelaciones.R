@@ -10,28 +10,59 @@ length(datos.solo.num)
 # IMPORTANTE: por que usamos coeficiente de correlacion de SPEARMAN ? 
 
 # Quitamos la variable respuesta
-indR = grep("Total.Household.Income", colnames(datos.solo.num))
-datos.sin.autocorr =  datos.solo.num[, -indR]
+indR = grep("Total.Household.Income", colnames(datos.sin.out))
+datos.sin.autocorr =  datos.sin.out[, -indR]
 
 # Mapa de calor de las autocorrelaciones
 heatmap(cor(datos.sin.autocorr, method="spearman"))
+# No se ve bien, bastante dificil
 
+# Lista de nombres de columnas correlacionadas entre si (pendientes a eliminar)
+autocor.cols = c()
 i = 1
-while (length(datos.sin.autocorr) >= i + 1){ # como minimo quedan dos columnas
-  if (any(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)) { # quitamos de las correlaciones la misma columna, porque una variable consigo misma tiene correlacion 1 siempre
-    print(colnames(datos.sin.autocorr)[i])
-    datos.sin.autocorr = datos.sin.autocorr[, -i]
-  } else {
-    i = i + 1
+while (length(datos.sin.autocorr) >= i){
+  # quitamos de las correlaciones la misma columna, 
+  # porque una variable consigo misma tiene correlacion 1 siempre
+  if (any(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)) { 
+    autocor.cols = c(autocor.cols, colnames(datos.sin.autocorr)[i])
   }
+  i = i + 1
 }
+
+# Vemos que hay dos parejas que estan muy correlacionadas
+heatmap(cor(datos.sin.autocorr[, autocor.cols]))
+# Quitamos las que tengan MENOS correlacion con la var. respuesta
+cor(datos.sin.out)["Total.Household.Income", autocor.cols]
+
+indDelete = c(
+  grep("Total.Rice.Expenditure", colnames(datos.sin.autocorr)), 
+  grep("Imputed.House.Rental.Value", colnames(datos.sin.autocorr))
+)
+
+datos.sin.autocorr =  datos.sin.autocorr[, -indDelete]
+
+# Probamos otra vez
+autocor.cols = c()
+i = 1
+while (length(datos.sin.autocorr) >= i){
+  # quitamos de las correlaciones la misma columna, 
+  # porque una variable consigo misma tiene correlacion 1 siempre
+  if (any(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)) { 
+    autocor.cols = c(autocor.cols, colnames(datos.sin.autocorr)[i])
+  }
+  i = i + 1
+}
+
+length(autocor.cols) # 0 - no hay columnas autocorrelacionadas (correlacion en abs mas de 0.7)
+
 length(datos.sin.autocorr) # quedan 38 columnas
+
 sum(cor(datos.sin.autocorr, method="spearman") > 0.7) # solo estan las diagonales
 
 #View(datos.sin.autocorr)
 
 # Volvemos la columna a predecir
-datos.sin.autocorr = cbind(datos.solo.num$Total.Household.Income, datos.sin.autocorr)
+datos.sin.autocorr = cbind(datos.sin.out$Total.Household.Income, datos.sin.autocorr)
 # Renombramos columna
 colnames(datos.sin.autocorr)[1] = "Total.Household.Income"
 
