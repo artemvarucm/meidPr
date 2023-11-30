@@ -13,3 +13,5 @@ RLM_FULL.predict = predict(RLM_FULL,datos)
 # raiz del error cuadratico medio de la prediccion
 RLM_FULL.error = (sum((datos$Total.Household.Income - RLM_FULL.predict) ^ 2)/length(RLM_FULL.predict)) ^ 0.5
 RLM_FULL.error # 131924.9
+library(car)
+vif(RLM_FULL)

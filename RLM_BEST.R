@@ -4,13 +4,16 @@
 # set.seed() y sample(1:nrow(datos), prob=c(0.2, 0.8))....
 set.seed(20)
 
-train_indices = sample(1:nrow(datos), floor(nrow(datos) * 0.8), replace=FALSE)
+train_indices = sample(1:nrow(datos.sin.out), floor(nrow(datos.sin.out) * 0.8), replace=FALSE)
 
-data_train = datos[train_indices,]
+data_train = datos.sin.out[train_indices,]
 
-rownames(data_train)=1:nrow(data_train) # renombramos indice
+rownames(data_train)=1:nrow(data_train) # renombramos indices
 
-data_test = datos[-train_indices,] # olvidamos de momento del test
+data_test = datos.sin.out[-train_indices,] # olvidamos de momento del test
+
+rownames(data_test)=1:nrow(data_test) # renombramos indices
+
 
 # 5. Regresion multiple (1er modelo)
 
@@ -25,34 +28,38 @@ RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predi
 RLM_high.cor.error # 175604.9 
 
 # Intentamos predecir (sobre todo el modelo de datos)
-RLM_high.cor.predict = predict(RLM_high.cor,datos)
-RLM_high.cor.error = (sum((datos$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
+RLM_high.cor.predict = predict(RLM_high.cor,datos.sin.out)
+RLM_high.cor.error = (sum((datos.sin.out$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 RLM_high.cor.error # 208002.1
 
-# El error ha crecido casi el doble, respecto RLM_FULL
-# Veamos si hay outliers que afecten el modelo
-hist(data_train$Total.Household.Income, 100)
-# En el histograma se ve que el salario mayor que 1 millon es poco frecuente
-# De hecho
-nrow(data_train) # 11733 total de filas 
-sum(data_train$Total.Household.Income > 1000000) # 231
-# Serian alrededor de un 2% del total. Intentemos quitarlos y contruir de nuevo el modelo
-data_train.sin.out = data_train[data_train$Total.Household.Income < 1000000, ]
+# # El error ha crecido casi el doble, respecto RLM_FULL
+# # Veamos si hay outliers que afecten el modelo
+# hist(data_train$Total.Household.Income, 100)
+# # En el histograma se ve que el salario mayor que 1 millon es poco frecuente
+# # De hecho
+# nrow(data_train) # 11733 total de filas 
+# sum(data_train$Total.Household.Income > 1000000) # 231
+# # Serian alrededor de un 2% del total. Intentemos quitarlos y contruir de nuevo el modelo
+# data_train.sin.out = data_train[data_train$Total.Household.Income < 1000000, ]
+# 
+# RLM_high.cor = lm(Total.Household.Income ~., data = data_train.sin.out[, high.corr.cols])
+# 
+# # Intentamos predecir (error sobre data_test)
+# RLM_high.cor.predict = predict(RLM_high.cor,data_test)
+# # raiz del error cuadratico medio de la prediccion
+# RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
+# RLM_high.cor.error # 182378.6 
+# 
+# # Intentamos predecir (sobre todo el modelo de datos)
+# RLM_high.cor.predict = predict(RLM_high.cor,datos)
+# RLM_high.cor.error = (sum((datos$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
+# RLM_high.cor.error # 214248.4
+# En ambos casos, es mas alto el error, que si quitar outliers. 
 
-RLM_high.cor = lm(Total.Household.Income ~., data = data_train.sin.out[, high.corr.cols])
+# Descartamos este modelo.
 
-# Intentamos predecir (error sobre data_test)
-RLM_high.cor.predict = predict(RLM_high.cor,data_test)
-# raiz del error cuadratico medio de la prediccion
-RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-RLM_high.cor.error # 182378.6 
 
-# Intentamos predecir (sobre todo el modelo de datos)
-RLM_high.cor.predict = predict(RLM_high.cor,datos)
-RLM_high.cor.error = (sum((datos$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-RLM_high.cor.error # 214248.4
 
-# En ambos casos, es mas alto el error, que si quitar outliers. Descartamos este modelo.
 
 # IMPORTANTE: Podemos hacer forwarding(anadir variables) a este modelo
 
@@ -69,7 +76,7 @@ predict.regsubsets <- function(object, newdata, id,...){
 }
 
 # Nos quedamos solo con columnas numericas sin autocorrelacion
-data_train.solo.num = data_train[, cols.sin.autocorr]
+data_train.solo.num = data_train#[, cols.sin.autocorr]
 
 n <- nrow(data_train.solo.num) 
 k <- 5 #número de grupos igual a n # aqui poner 5 porque lo dijo la profe...
@@ -77,12 +84,12 @@ set.seed(5)
 # asigna a cada fila de da  ta train un grupo
 folds <- sample(x=1:k, size=nrow(data_train.solo.num), replace = TRUE)
 # IMPORTANTE: REEEMPLAZAR 20 despues
-cv.errors <- matrix(NA, k, 20, dimnames = list(NULL,paste(1:20)))
+cv.errors <- matrix(NA, k, 40, dimnames = list(NULL,paste(1:40)))
 # betas para el modelo con minimo error
 for (j in 1:k){
   # j es el grupo que dejamos fuera del conjunto de entrenar
-  best.fit <- regsubsets(Total.Household.Income~., data=data_train.solo.num[folds !=j,], nvmax = 20) # comprobado con 42, el de 16 es el mejor
-  for (i in 1:20){ # hay un limite en regsubsets de 8 variables
+  best.fit <- regsubsets(Total.Household.Income~., data=data_train.solo.num[folds !=j,], nvmax = 40) # comprobado con 42, el de 16 es el mejor
+  for (i in 1:40){ # hay un limite en regsubsets de 8 variables
     pred <- predict.regsubsets(best.fit, newdata=data_train.solo.num[folds==j,], id=i) #datos de test
     cv.errors[j,i] <- (mean((data_train.solo.num$Total.Household.Income[folds == j]-pred)^2)) ^ 0.5
   }
@@ -112,8 +119,8 @@ RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.p
 RLM_regsubsets.error # 97824.69
 
 # Intentamos predecir (sobre todo el modelo de datos)
-RLM_regsubsets.predict = predict(RLM_regsubsets,datos)
-RLM_regsubsets.error = (sum((datos$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
+RLM_regsubsets.predict = predict(RLM_regsubsets,datos.sin.out)
+RLM_regsubsets.error = (sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # 134921.7
 
 # Prediccion mejor, que con RLM.high.cor pero sobre el modelo completo seguimos perdiendo contra RLM_FULL
@@ -212,8 +219,8 @@ RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubse
 RLM_regsubsets.error # 361146.9
 
 # Error cuadratico medio del modelo sobre modelo Completo
-RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,datos) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-RLM_regsubsets.error = sqrt(sum((datos$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
+RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,datos.sin.out) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
+RLM_regsubsets.error = sqrt(sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
 RLM_regsubsets.error # 385657.2
 # ERROR COSMICO...
 

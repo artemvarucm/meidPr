@@ -1,8 +1,7 @@
 # 2. Analisis de las correlaciones. Explicacion.
 # cor(datos), dependiendo del caso spearman, pearson...
 
-# Seleccionamos las columnas numericas solo
-datos.solo.num = datos[sapply(datos, is.numeric)]
+
 # 43 columnas numericas
 length(datos.solo.num) 
 
@@ -20,6 +19,7 @@ heatmap(cor(datos.sin.autocorr, method="spearman"))
 i = 1
 while (length(datos.sin.autocorr) >= i + 1){ # como minimo quedan dos columnas
   if (any(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)) { # quitamos de las correlaciones la misma columna, porque una variable consigo misma tiene correlacion 1 siempre
+    print(colnames(datos.sin.autocorr)[i])
     datos.sin.autocorr = datos.sin.autocorr[, -i]
   } else {
     i = i + 1

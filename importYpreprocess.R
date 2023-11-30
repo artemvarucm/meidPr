@@ -6,7 +6,7 @@ library(nortest) # test normalidad
 library(lmtest) # test homoscedasticidad
 library(MASS) # box-cox
 library(leaps) # regsubsets
-
+library(moments) # skewness
 datos <- read.table(file = "./Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
 # IMPORTANTE CUASIVARIANZA O VARIANZA
@@ -39,17 +39,65 @@ summary(datos)
 
 # Vemos que hay algunas columnas como Household.Head.Occupation y Household.Head.Class.of.Worker que tienen muchos nulos.
 # Quitamos las filas que tengan algun nulo
-datos = datos[complete.cases(datos),]
+sum(!complete.cases(datos)) # 3355
+sum(!complete.cases(datos[,-c(31, 32)])) # 0
+datos = datos[,-c(31, 32)] # quitamos columnas con N/A
+#datos = datos[complete.cases(datos),]
+par(mfrow=c(1, 5))
+for (x in colnames(datos)) {
+  if (!is.numeric(datos[, x])) {
+    barplot(table(datos[, x]), las=2, legend=TRUE)
+  }
+}
+# Seleccionamos las columnas numericas solo
+datos.solo.num = datos[sapply(datos, is.numeric)]
+
 
 # Distribucion del salario, asimetrica a la derecha
-hist(datos$Total.Household.Income, 100)
+#hist(datos[datos$Total.Household.Income < 1000000, ]$Total.Household.Income, 100)
 
 
 # Distribucion por regiones
-barplot(table(datos$Region),las=2)
+#barplot(table(datos$Region),las=2)
 
-barplot(table(datos$Household.Head.Sex),las=2)
+#barplot(table(datos$Household.Head.Sex),las=2)
 
-barplot(table(datos$Electricity),las=2)
+#barplot(table(datos$Electricity),las=2)
 
-barplot(table(datos$Type.of.Building.House),las=2)
+#barplot(table(datos$Type.of.Building.House),las=2)
+
+
+# Quitamos las columnas agregadas (mucha correlacion con otras, literalmente combinacion lineal)
+datos.preprocess = datos.solo.num
+
+aggrCols = c("Total.Food.Expenditure", "Total.Number.of.Family.members")
+for (col in aggrCols) {
+  indR = grep(col, colnames(datos.preprocess))
+  datos.preprocess = datos.preprocess[, -indR]
+}
+
+# Quitamos outliers segun todas las columnas
+datos.sin.out = datos.preprocess
+coefIQR = 1.5 # coeficiente por el cual se multiplicará el IQR para quitar outliers
+for (x in colnames(datos.sin.out[, c(1:22, 26, 27)])) { # Quitamos columnas con muy pocas alternativas (casi categoricas, Number of TVs)
+  col = datos.sin.out[, x]
+  print(x)
+  print(dim(datos.sin.out))
+  
+  if (abs(skewness(col)) > 2) { # en simetricas, skewness esta entre (-2, 2)
+    # si no es simetrica, la transformamos con box cox, 
+    # pero la columna del dataframe queda igual
+    col = dlookr::transform(col, method="Box-Cox")
+  }
+  q1 = quantile(col, 0.25)
+  q3 = quantile(col, 0.75)
+  iqr = q3 - q1
+  datos.sin.out = datos.sin.out[col < q3 + coefIQR*iqr,]
+  col = col[col < q3 + coefIQR*iqr]
+  datos.sin.out = datos.sin.out[col > q1 - coefIQR*iqr,]
+}
+
+
+
+
+
