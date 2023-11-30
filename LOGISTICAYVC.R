@@ -1,13 +1,4 @@
 ###EJERCICIOS NAIVE BAYES
-
-library(nortest) # test normalidad
-library(lmtest) # test homoscedasticidad
-library(MASS) # box-cox
-library(leaps) # regsubsets
-
-datos <- read.table(file = "C:\\Users\\usuario_local\\Downloads\\Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
-
-
 # 8. Regresion logistica (7to modelo) (No estoy seguro si hay que hacer la logistica o la discriminante)
 # 8.1 Convertir variable respuesta en una variable categorica (ej. salario alto, salario bajo)
 # 8.2 Realizar una tabla de contingencia para ver la eficiencia
