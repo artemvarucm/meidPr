@@ -90,21 +90,48 @@ bptest(RLM_high.cor.box.cox) # no cumple
 ##independencia
 dwtest(RLM_high.cor.box.cox) # cumple
 
-
 # Transformamos las variables explicativas
 # Guardamos lambda para las columnas, para la prediccion posterior
-#lambdas = data.frame("Total.Household.Income"=c(lambda))
-# CONTINUAR .... 
+lambdas = data.frame("Total.Household.Income"=c(lambda))
 
+indR = grep("Total.Household.Income", colnames(data.copy)) # la respuesta ya esta transformada
 
+for (c in colnames(data.copy[, -indR])) {
+  if (abs(skewness(data.copy[,c])) < 2 && !any(data.copy[,c] <= 0)) { # si no es simetrica, transformamos
+    x = data.copy[,c]
+    b<-boxcox(lm(x~1))
+    lambda<-b$x[which.max(b$y)]
+    lambdas = cbind(lambdas, c(lambda))
+    colnames(lambdas)[length(colnames(lambdas))] = c # renombramos nueva columna
+    transf.col<-(x^lambda-1)/lambda # transformamos la variable respuesta
+    
+    data.copy[,c] = transf.col # cambiamos la variable respuesta en el dataset
+    # reconstruimos modelo
+    RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy)
+    if (lillie.test(RLM_high.cor.box.cox$residuals)$p.value > 0.0001) {
+      break
+    } else {
+      print(c)
+      print("lillie-test p-value")
+      print(lillie.test(RLM_high.cor.box.cox$residuals)$p.value)
+      # quitamos outliers
+      IQR = quantile(transf.col, 0.75) - quantile(transf.col, 0.25)
+      # Limite inferior
+      lowerBound = quantile(transf.col, 0.25) - 1.5*IQR
+      # Limite superior
+      upperBound = quantile(transf.col, 0.75) + 1.5*IQR
+      data.copy = data.copy[data.copy[,c] < upperBound,]
+      data.copy = data.copy[data.copy[,c] > lowerBound,]
+      
+      RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy)
+      if (lillie.test(RLM_high.cor.box.cox$residuals)$p.value > 0.0001) {
+        break
+      }
+    }
+  }
+}
 
-
-
-
-
-
-
-
+print(lillie.test(RLM_high.cor.box.cox$residuals)$p.value) # no ha mejorado casi nada, descartamos normalidad
 
 
 # 5.1 Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
