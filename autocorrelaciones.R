@@ -99,10 +99,6 @@ corr.sin.autocorr[,"Total.Household.Income"]
 # (Total.Household.Income esta dentro porque su correlacion es 1)
 high.corr.cols = rownames(data.frame(corr.sin.autocorr[abs(corr.sin.autocorr[,"Total.Household.Income"]) > 0.7, "Total.Household.Income"]))
 high.corr.cols
-
-# Seleccionamos del dataset solo las columnas anteriores
-datos.high.cor = datos[,high.corr.cols] # seleccionamos las columnas correlacionadas
-summary(datos.high.cor)
-# Lo usaremos mas adelante en la RLM_BEST
+# Las usaremos mas adelante en la RLM_BEST
 
 

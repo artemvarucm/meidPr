@@ -5,7 +5,7 @@
 # 6.2 Calculamos el error cuadratico medio del modelo hallado
 
 # Ridge alpha = 0
-install.packages("glmnet") #solo si no est´a ya instalado
+#install.packages("glmnet") #solo si no est´a ya instalado
 library(glmnet)
 
 
@@ -53,10 +53,10 @@ RLM_LASSO.pred = predict(RLM_LASSO,s=bestlam,newx=rbind(x.train, x.test))
 # Predice un poco mejor que el modelo RIDGE
 
 # Lo bueno es que quita variables (asignandole en coeficiente un 0)
-out<-glmnet(x.train,y.train,alpha=1,lambda=grid)
+out<-glmnet(x.train,y.train,alpha=1,lambda=bestlam)
 lasso.coef<-predict(out,type="coefficients",s=bestlam)
 lasso.coef
-length(lasso.coef[lasso.coef!=0]) # Quedaron 28 variables de 38 iniciales
+length(lasso.coef[lasso.coef!=0]) # Quedaron 30 variables de 38 iniciales
 
 # Elasticnet
 # Suponemos que glmnet por debajo usa algo asi:
@@ -99,7 +99,7 @@ RLM_ELASTIC.pred = predict(models[[minimo$name]],s=minimo$lambda,newx=rbind(x.tr
 out<-glmnet(x.train,y.train,alpha=minimo$alpha)
 elasnet.coef<-predict(out,type="coefficients",s=minimo$lambda)
 elasnet.coef
-length(elasnet.coef[elasnet.coef!=0]) # Quedaron 27 variables de 38 iniciales
+length(elasnet.coef[elasnet.coef!=0]) # Quedaron 31 variables de 38 iniciales
 
 
 
