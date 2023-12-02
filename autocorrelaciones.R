@@ -17,7 +17,9 @@ datos.sin.autocorr =  datos.sin.out[, -indR]
 heatmap(cor(datos.sin.autocorr, method="spearman"))
 # No se ve bien, bastante dificil
 
-# Lista de nombres de columnas correlacionadas entre si (pendientes a eliminar)
+# Guardara las parejas de variables altamente correlacionadas (pendientes a eliminar)
+autocor.pairs = data.frame()
+# Lista de columnas autocorrelacionadas (para heatmap)
 autocor.cols = c()
 i = 1
 while (length(datos.sin.autocorr) >= i){
@@ -25,23 +27,36 @@ while (length(datos.sin.autocorr) >= i){
   # porque una variable consigo misma tiene correlacion 1 siempre
   if (any(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)) { 
     autocor.cols = c(autocor.cols, colnames(datos.sin.autocorr)[i])
+    for (col in rownames(as.matrix(which(abs(cor(datos.sin.autocorr, method="spearman")[i, -i]) > 0.7)))) {
+      if (length(autocor.pairs) == 0) {
+        autocor.pairs = as.data.frame(c(col))
+        colnames(autocor.pairs)[length(colnames(autocor.pairs))] = colnames(datos.sin.autocorr)[i]
+      } else if (length(autocor.pairs[1, col]) == 0 || autocor.pairs[1, col] != colnames(datos.sin.autocorr)[i]) { # si no esta anadido todavia
+        autocor.pairs = cbind(autocor.pairs, c(col))
+        colnames(autocor.pairs)[length(colnames(autocor.pairs))] = colnames(datos.sin.autocorr)[i]
+      }
+    }
   }
   i = i + 1
 }
 
+autocor.pairs
+
 # Vemos que hay dos parejas que estan muy correlacionadas
 heatmap(cor(datos.sin.autocorr[, autocor.cols]))
-# Quitamos las que tengan MENOS correlacion con la var. respuesta
+# Viendo las parejas, quitamos las que tengan MENOS correlacion con la var. respuesta
 cor(datos.sin.out)["Total.Household.Income", autocor.cols]
 
 indDelete = c(
   grep("Total.Rice.Expenditure", colnames(datos.sin.autocorr)), 
-  grep("Imputed.House.Rental.Value", colnames(datos.sin.autocorr))
+  grep("Housing.and.water.Expenditure", colnames(datos.sin.autocorr)) # quitamos esta porque sale correlacionada con dos a la vez
 )
 
 datos.sin.autocorr =  datos.sin.autocorr[, -indDelete]
 
 # Probamos otra vez
+
+# Lista de columnas autocorrelacionadas
 autocor.cols = c()
 i = 1
 while (length(datos.sin.autocorr) >= i){

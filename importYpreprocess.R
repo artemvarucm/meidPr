@@ -82,8 +82,8 @@ for (col in aggrCols) {
 
 # Quitamos outliers segun todas las columnas
 datos.sin.out = datos.preprocess
-coefIQR = 1.5 # coeficiente por el cual se multiplicará el IQR para quitar outliers
-for (x in colnames(datos.sin.out[, c(1:22, 26, 27)])) { # Quitamos columnas con muy pocas alternativas (casi categoricas, Number of TVs)
+coefIQR = 3 # coeficiente por el cual se multiplicará el IQR para quitar outliers
+for (x in colnames(datos.sin.out)) { # Quitamos columnas con muy pocas alternativas (casi categoricas, Number of TVs)
   col = datos.sin.out[, x]
   print(x)
   print(dim(datos.sin.out))
@@ -96,9 +96,11 @@ for (x in colnames(datos.sin.out[, c(1:22, 26, 27)])) { # Quitamos columnas con 
   q1 = quantile(col, 0.25)
   q3 = quantile(col, 0.75)
   iqr = q3 - q1
-  datos.sin.out = datos.sin.out[col < q3 + coefIQR*iqr,]
-  col = col[col < q3 + coefIQR*iqr]
-  datos.sin.out = datos.sin.out[col > q1 - coefIQR*iqr,]
+  if (iqr > 0) { # si los dos quantiles coinciden, evitamos quitar todos los datos
+    datos.sin.out = datos.sin.out[col < q3 + coefIQR*iqr,]
+    col = col[col < q3 + coefIQR*iqr]
+    datos.sin.out = datos.sin.out[col > q1 - coefIQR*iqr,]
+  }
 }
 
 
