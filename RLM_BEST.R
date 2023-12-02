@@ -1,8 +1,4 @@
-library(olsrr) # para cp de mallows
-
-# 4. Separamos los datos en train y test (80/20, 75/25, 70/30...)
-# test se guarda para el final
-# set.seed() y sample(1:nrow(datos), prob=c(0.2, 0.8))....
+# Separamos los datos en train y test (80/20, 75/25, 70/30...)
 set.seed(20)
 
 train_indices = sample(1:nrow(datos.sin.out), floor(nrow(datos.sin.out) * 0.8), replace=FALSE)
@@ -16,9 +12,15 @@ data_test = datos.sin.out[-train_indices,] # olvidamos de momento del test
 rownames(data_test)=1:nrow(data_test) # renombramos indices
 
 
-# 5. Regresion multiple (1er modelo)
 
-# Primero intentamos usar las columnas altamente correlacionadas con Total.Household.Income , que estan en high.corr.cols
+
+
+
+
+# Regresion multiple
+
+# Primero intentamos usar las columnas altamente correlacionadas con Total.Household.Income, 
+# (estan en high.corr.cols)
 
 RLM_high.cor = lm(Total.Household.Income ~., data = data_train[, high.corr.cols])
 
@@ -26,43 +28,84 @@ RLM_high.cor = lm(Total.Household.Income ~., data = data_train[, high.corr.cols]
 RLM_high.cor.predict = predict(RLM_high.cor,data_test)
 # raiz del error cuadratico medio de la prediccion
 RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-RLM_high.cor.error # 175604.9 
+RLM_high.cor.error # 272143.5 
 
 # Intentamos predecir (sobre todo el modelo de datos)
 RLM_high.cor.predict = predict(RLM_high.cor,datos.sin.out)
 RLM_high.cor.error = (sum((datos.sin.out$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-RLM_high.cor.error # 208002.1
+RLM_high.cor.error # 235121.1
 
-# # El error ha crecido casi el doble, respecto RLM_FULL
-# # Veamos si hay outliers que afecten el modelo
-# hist(data_train$Total.Household.Income, 100)
-# # En el histograma se ve que el salario mayor que 1 millon es poco frecuente
-# # De hecho
-# nrow(data_train) # 11733 total de filas 
-# sum(data_train$Total.Household.Income > 1000000) # 231
-# # Serian alrededor de un 2% del total. Intentemos quitarlos y contruir de nuevo el modelo
-# data_train.sin.out = data_train[data_train$Total.Household.Income < 1000000, ]
-# 
-# RLM_high.cor = lm(Total.Household.Income ~., data = data_train.sin.out[, high.corr.cols])
-# 
-# # Intentamos predecir (error sobre data_test)
-# RLM_high.cor.predict = predict(RLM_high.cor,data_test)
-# # raiz del error cuadratico medio de la prediccion
-# RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-# RLM_high.cor.error # 182378.6 
-# 
-# # Intentamos predecir (sobre todo el modelo de datos)
-# RLM_high.cor.predict = predict(RLM_high.cor,datos)
-# RLM_high.cor.error = (sum((datos$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-# RLM_high.cor.error # 214248.4
-# En ambos casos, es mas alto el error, que si quitar outliers. 
-
-# Descartamos este modelo.
+# Veamos los tests.
+residuos<-RLM_high.cor$residuals
+lillie.test(residuos) # no cumple
+#homocedatsicidad
+bptest(RLM_high.cor) # no cumple
+##independencia
+dwtest(RLM_high.cor) # cumple
 
 
+# Transformamos a box-cox para ver si podemos hacer que den los tests
+data.copy = data_train
+
+x<-data.copy$Total.Household.Income
+b<-boxcox(lm(x~1))
+lambda<-b$x[which.max(b$y)]
+# El valor de lambda que usaremos
+lambda
+ynew<-(x^lambda-1)/lambda # transformamos la variable respuesta
+
+data.copy$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
+
+RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy) # formamos nuevo modelo
 
 
-# IMPORTANTE: Podemos hacer forwarding(anadir variables) a este modelo
+# Veamos los tests.
+residuos<-RLM_high.cor.box.cox$residuals
+lillie.test(residuos) # no cumple
+#homocedatsicidad
+bptest(RLM_high.cor.box.cox) # no cumple
+##independencia
+dwtest(RLM_high.cor.box.cox) # cumple
+
+# Quitamos outliers segun variable respuesta, es simetrica ahora
+skewness(ynew) # simetrica
+
+boxplot(ynew) # entre 4.5 y 5.1
+IQR = quantile(ynew, 0.75) - quantile(ynew, 0.25)
+# Limite inferior
+lowerBound = quantile(ynew, 0.25) - 1.5*IQR
+# Limite superior
+upperBound = quantile(ynew, 0.75) + 1.5*IQR
+data.copy = data.copy[ynew < upperBound,]
+ynew = ynew[ynew < upperBound]
+data.copy = data.copy[ynew > lowerBound,]
+
+RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy) # formamos nuevo modelo
+
+# Veamos los tests.
+residuos<-RLM_high.cor.box.cox$residuals
+lillie.test(residuos) # no cumple, pero ha mejorado
+#homocedatsicidad
+bptest(RLM_high.cor.box.cox) # no cumple
+##independencia
+dwtest(RLM_high.cor.box.cox) # cumple
+
+
+# Transformamos las variables explicativas
+# Guardamos lambda para las columnas, para la prediccion posterior
+#lambdas = data.frame("Total.Household.Income"=c(lambda))
+# CONTINUAR .... 
+
+
+
+
+
+
+
+
+
+
+
 
 # 5.1 Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
 ##LOOCV
@@ -77,7 +120,7 @@ predict.regsubsets <- function(object, newdata, id,...){
 }
 
 # Nos quedamos solo con columnas numericas sin autocorrelacion
-data_train.solo.num = data_train#[, cols.sin.autocorr]
+data_train.solo.num = data_train[, cols.sin.autocorr]
 
 n <- nrow(data_train.solo.num) 
 k <- 4 # número de grupos, 4 porque se queda con 26 variables en vez de 40
@@ -110,122 +153,92 @@ data.regsubsets = data_train.solo.num[, c("Total.Household.Income", names(min.er
 
 RLM_regsubsets = lm(Total.Household.Income ~ ., data=data.regsubsets) 
 
-# predecimos
+summary(RLM_regsubsets)
 # Intentamos predecir (error sobre data_test)
 RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
 # raiz del error cuadratico medio de la prediccion
 RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
-RLM_regsubsets.error # 97824.69
+RLM_regsubsets.error # 147132.9
 
 # Intentamos predecir (sobre todo el modelo de datos)
 RLM_regsubsets.predict = predict(RLM_regsubsets,datos.sin.out)
 RLM_regsubsets.error = (sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
-RLM_regsubsets.error # 134921.7
+RLM_regsubsets.error # 173931.8
 
-# Prediccion mejor, que con RLM.high.cor pero sobre el modelo completo seguimos perdiendo contra RLM_FULL
-
-
-
-
-
-
-# 5.2 Realizar tests de normalidad, homoscedasticidad y autocorrelacion 
-#estudiamos la normalidad en los residuos
+# Veamos los tests.
 residuos<-RLM_regsubsets$residuals
-lillie.test(residuos)
+lillie.test(residuos) # no cumple
 #homocedatsicidad
-bptest(RLM_regsubsets)
+bptest(RLM_regsubsets) # no cumple
 ##independencia
-dwtest(RLM_regsubsets)
-############### CONTINUAR O NO - DEPENDE DEL RESULTADO DE TESTS
-# ? 5.3 Si no ha funcionado, vemos si hay outliers
-# ? 5.4 Quitamos esos outliers
-rest=rstudent(RLM_regsubsets) # calculamos los residuos estudentizados
-outliers=c(which(rest>3),which(rest<(-3)))
+dwtest(RLM_regsubsets) # cumple
 
-datos_sin_out=data.regsubsets[-outliers, ]
+# Transformamos a box-cox para ver si podemos hacer que den los tests
+data.copy = data.regsubsets
 
-rownames(datos_sin_out)=1:nrow(datos_sin_out) #renombramos indices
-
-RLM_regsubsets.sin.out <- lm(Total.Household.Income ~ ., data=datos_sin_out)
-
-# ? 5.5 Volvemos a Realizar tests de normalidad, homoscedasticidad y autocorrelacion
-#estudiamos la normalidad en los residuos
-# box-plot no funciona para distribuciones asimetricas (analizar skewness si esta fuera de (-2, 2) es asimetrica )
-#install.packages("moments")
-#library(moments)
-#skewness(best.RLM)
-
-residuos<-RLM_regsubsets.sin.out$residuals
-lillie.test(residuos)
-#homocedatsicidad
-bptest(RLM_regsubsets.sin.out)
-##independencia
-dwtest(RLM_regsubsets.sin.out)
-
-# No han cambiado los resultados
-
-# ? 5.6 Realizamos transformacion BOX-COX
-data.copy.new.regsubsets = data.regsubsets
-# Predice bien, si realizamos este filtro, que me parece bastante MAL
-# data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income < 100000,]
-
-x<-data.copy.new.regsubsets$Total.Household.Income
+x<-data.copy$Total.Household.Income
 b<-boxcox(lm(x~1))
 lambda<-b$x[which.max(b$y)]
 # El valor de lambda que usaremos
 lambda
 ynew<-(x^lambda-1)/lambda # transformamos la variable respuesta
 
-skewness(ynew) # - simetrica
+data.copy$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
+
+RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy) # formamos nuevo modelo
+
+
+# Veamos los tests.
+residuos<-RLM_regsubsets.box.cox$residuals
+lillie.test(residuos) # no cumple
+#homocedatsicidad
+bptest(RLM_regsubsets.box.cox) # no cumple
+##independencia
+dwtest(RLM_regsubsets.box.cox) # cumple
+
+# Quitamos outliers segun variable respuesta, es simetrica ahora
+skewness(ynew) # simetrica
 
 boxplot(ynew) # entre 4.5 y 5.1
-# Lo de abajo de IQR EMPEORA el resultado
 IQR = quantile(ynew, 0.75) - quantile(ynew, 0.25)
 # Limite inferior
 lowerBound = quantile(ynew, 0.25) - 1.5*IQR
 # Limite superior
 upperBound = quantile(ynew, 0.75) + 1.5*IQR
+data.copy = data.copy[ynew < upperBound,]
+ynew = ynew[ynew < upperBound]
+data.copy = data.copy[ynew > lowerBound,]
 
-data.copy.new.regsubsets$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
-data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income < upperBound, ]
-data.copy.new.regsubsets = data.copy.new.regsubsets[data.copy.new.regsubsets$Total.Household.Income > lowerBound, ]
+RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy) # formamos nuevo modelo
 
-RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.new.regsubsets) # formamos nuevo modelo
-
-
-
-
-
-
-# ? 5.7 Volvemos a Realizar tests de normalidad, homoscedasticidad y autocorrelacion 
-#estudiamos la normalidad en los residuos
+# Veamos los tests.
 residuos<-RLM_regsubsets.box.cox$residuals
-lillie.test(residuos)
+lillie.test(residuos) # no cumple, pero ha mejorado
 #homocedatsicidad
-bptest(RLM_regsubsets.box.cox)
+bptest(RLM_regsubsets.box.cox) # no cumple
 ##independencia
-dwtest(RLM_regsubsets.box.cox)
-############### FIN PARTE DEPENDIENTE
+dwtest(RLM_regsubsets.box.cox) # cumple
+
+
+# Transformamos las variables explicativas
+# Guardamos lambda para las columnas, para la prediccion posterior
+#lambdas = data.frame("Total.Household.Income"=c(lambda))
+# CONTINUAR .... 
 
 
 # 5.8 Calculamos el error cuadratico medio del modelo hallado
 # Error cuadratico medio del modelo sobre TEST
 # gracias al abs, no da NA, y tampoco afecta, pues el salario es siempre positivo
 # Si no, da error NA por intentar hacer raices pares sobre un termino negativo
-RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
-RLM_regsubsets.error # 361146.9
+#RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
+#RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
+#RLM_regsubsets.error
 
 # Error cuadratico medio del modelo sobre modelo Completo
-RLM_regsubsets.pred = (predict(RLM_regsubsets.box.cox,datos.sin.out) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-RLM_regsubsets.error = sqrt(sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
-RLM_regsubsets.error # 385657.2
-# ERROR COSMICO...
+#RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,datos.sin.out) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
+#RLM_regsubsets.error = sqrt(sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
+#RLM_regsubsets.error
+# Error cosmico...
 
-# residualPlot
-# library(car)
-# influencePlot(RLM_model)
-# outlier.test
 
 
