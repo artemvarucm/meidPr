@@ -71,17 +71,10 @@ datos.solo.num = datos[sapply(datos, is.numeric)]
 #barplot(table(datos$Type.of.Building.House),las=2)
 
 
-# Quitamos las columnas agregadas (mucha correlacion con otras, literalmente combinacion lineal)
-datos.preprocess = datos.solo.num
 
-aggrCols = c("Total.Food.Expenditure", "Total.Number.of.Family.members")
-for (col in aggrCols) {
-  indR = grep(col, colnames(datos.preprocess))
-  datos.preprocess = datos.preprocess[, -indR]
-}
 
 # Quitamos outliers segun todas las columnas
-datos.sin.out = datos.preprocess
+datos.sin.out = datos.solo.num
 coefIQR = 3 # coeficiente por el cual se multiplicará el IQR para quitar outliers
 for (x in colnames(datos.sin.out)) { # Quitamos columnas con muy pocas alternativas (casi categoricas, Number of TVs)
   col = datos.sin.out[, x]
@@ -103,6 +96,15 @@ for (x in colnames(datos.sin.out)) { # Quitamos columnas con muy pocas alternati
   }
 }
 
+# Quitamos las columnas agregadas (mucha correlacion con otras, literalmente combinacion lineal)
+
+total.num.fam.mem = datos.sin.out["Total.Number.of.Family.members"] # guardamos para logistica
+
+aggrCols = c("Total.Food.Expenditure", "Total.Number.of.Family.members")
+for (col in aggrCols) {
+  indR = grep(col, colnames(datos.sin.out))
+  datos.sin.out = datos.sin.out[, -indR]
+}
 
 
 
