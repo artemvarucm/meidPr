@@ -1,6 +1,4 @@
 # Artem Vartanov y Mario Baldocchi
-# 1. Descripcion del estudio, motivacion...
-# Hablar un poco de la tabla de datos, hacer as.factor, summary(datos)...
 
 library(nortest) # test normalidad
 library(lmtest) # test homoscedasticidad
@@ -14,7 +12,6 @@ library(caret) # reg. logistica confusionMatrix
 
 datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/meidPr/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
-# IMPORTANTE CUASIVARIANZA O VARIANZA
 dim(datos)
 
 summary(datos)
@@ -43,40 +40,26 @@ datos$Main.Source.of.Water.Supply = as.factor(datos$Main.Source.of.Water.Supply)
 summary(datos)
 
 # Vemos que hay algunas columnas como Household.Head.Occupation y Household.Head.Class.of.Worker que tienen muchos nulos.
-# Quitamos las filas que tengan algun nulo
+# Quitamos las columnas que tengan algun nulo
 sum(!complete.cases(datos)) # 3355
 sum(!complete.cases(datos[,-c(31, 32)])) # 0
 datos = datos[,-c(31, 32)] # quitamos columnas con N/A
-#datos = datos[complete.cases(datos),]
-
-# Histogramas y diagramas barras
-# par(mfrow=c(1, 5))
-# for (x in colnames(datos)) {
-#   if (!is.numeric(datos[, x])) {
-#     barplot(table(datos[, x]), las=2, legend=TRUE)
-#   }
-# }
-
+sum(!complete.cases(datos))
 
 # Seleccionamos las columnas numericas solo
 datos.solo.num = datos[sapply(datos, is.numeric)]
 
+# Histogramas
+par(mfrow=c(3, 5))
+for (x in colnames(datos)) {
+    hist(table(datos[, x]), xlab=x)
+}
 
-# Distribucion del salario, asimetrica a la derecha
-#hist(datos[datos$Total.Household.Income < 1000000, ]$Total.Household.Income, 100)
-
-
-# Distribucion por regiones
-#barplot(table(datos$Region),las=2)
-
-#barplot(table(datos$Household.Head.Sex),las=2)
-
-#barplot(table(datos$Electricity),las=2)
-
-#barplot(table(datos$Type.of.Building.House),las=2)
-
-
-
+# Plots
+par(mfrow=c(3, 5))
+for (x in colnames(datos)) {
+  plot(datos[, x], xlab=x)
+}
 
 # Quitamos outliers segun todas las columnas
 datos.sin.out = datos.solo.num

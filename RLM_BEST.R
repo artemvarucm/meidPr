@@ -30,11 +30,6 @@ RLM_high.cor.predict = predict(RLM_high.cor,data_test)
 RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 RLM_high.cor.error # 272143.5 
 
-# Intentamos predecir (sobre todo el modelo de datos)
-# RLM_high.cor.predict = predict(RLM_high.cor,datos.sin.out)
-# RLM_high.cor.error = (sum((datos.sin.out$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
-# RLM_high.cor.error # 235121.1
-
 # Quitamos obsevaciones influyentes
 # Viendo el grafico, vamos a realizar una limieza de residuos menores que -8 y mayores que 8 (simetrico)
 # outlierTest no se puede usar, pues no son normales las variables
@@ -72,8 +67,7 @@ RLM_high.cor.error # 269037.3
 # En este caso ha mejorado. 
 # Nos quedamos con este modelo, pero no nos interesa seguir con este modelo. Error bastante critico
 
-# 5.1 Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
-##LOOCV
+# Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
 
 # Definimos una funcion para predecir a partir de regsubsets object, input newdata e id - n de variables
 predict.regsubsets <- function(object, newdata, id,...){
@@ -124,11 +118,6 @@ RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
 # raiz del error cuadratico medio de la prediccion
 RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # 147132.9
-
-# # Intentamos predecir (sobre todo el modelo de datos)
-# RLM_regsubsets.predict = predict(RLM_regsubsets,datos.sin.out)
-# RLM_regsubsets.error = (sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
-# RLM_regsubsets.error # 173931.8
 
 
 # Quitamos obsevaciones influyentes
@@ -329,5 +318,4 @@ pred.transf = abs(RLM_regsubsets.predict * lambda + 1) ^ (1/lambda)
 errores = (data_test$Total.Household.Income - pred.transf)
 
 RLM_regsubsets.error = (sum(errores ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
-RLM_regsubsets.error 
-# Error cosmico...
+RLM_regsubsets.error # Error cosmico

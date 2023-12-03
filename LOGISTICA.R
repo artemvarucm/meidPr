@@ -12,6 +12,7 @@ datos.log$Total.Household.Income[datos.log$Total.Household.Income == 1] = "Accep
 datos.log$Total.Household.Income = as.factor(datos.log$Total.Household.Income) #Convertimos la variable Total.Household.Income en una categórica
 
 #Dividimos en train y test
+set.seed(2)
 train<-sample(nrow(datos.log),ceiling(nrow(datos.log)/2))
 datos.log.train=datos.log[train,]
 datos.log.test=datos.log[-train,]
@@ -54,6 +55,7 @@ glm.pred<-as.factor(glm.pred)
 confusionMatrix(glm.pred,Income) #Realizamos la matriz de confusion
 
 #Validacion cruzada
+set.seed(2) # los folds son aleatorios
 folds <- createFolds(datos.log.train$Total.Household.Income, k = 20) #creamos los 20 folds
 model<-train(   Total.Household.Income ~ .,
                 data=datos.log.train,

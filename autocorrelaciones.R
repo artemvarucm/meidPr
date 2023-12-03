@@ -1,14 +1,10 @@
 # 2. Analisis de las correlaciones. Explicacion.
-# cor(datos), dependiendo del caso spearman, pearson...
-
 
 # 43 columnas numericas
 length(datos.solo.num) 
 
 # AUTO CORRELACIONES
 # Analizamos autocorrelaciones entre variables (excluimos la respuesta)
-# IMPORTANTE: por que usamos coeficiente de correlacion de SPEARMAN ? 
-
 # Quitamos la variable respuesta
 indR = grep("Total.Household.Income", colnames(datos.sin.out))
 datos.sin.autocorr =  datos.sin.out[, -indR]
@@ -90,15 +86,12 @@ corr.sin.autocorr = cor(datos.sin.autocorr, method="spearman")
 # Vemos las columnas correlacionadas linealmente con la variable respuesta Total.Household.Incom
 corr.sin.autocorr[,"Total.Household.Income"]
 
-# IMPORTANTE: INTENTAR VER COLUMNAS CORRELACIONADAS ENTRE SI, INFLUENCIADAS POR TERCERA COLUMNA
-# SE HACE CON CORRELACION AISLADA
-
 # Como hay demasiadas columnas numericas, es muy dificil sacar conclusiones
-# Seleccionamos correlaciones en valor absoluto mayores que 0.7 con la variable Total.Household.Income
+# Seleccionamos columnas con correlaciones en valor absoluto mayores que 0.7 con la variable Total.Household.Income
 # Lista de columnas 
 # (Total.Household.Income esta dentro porque su correlacion es 1)
 high.corr.cols = rownames(data.frame(corr.sin.autocorr[abs(corr.sin.autocorr[,"Total.Household.Income"]) > 0.7, "Total.Household.Income"]))
 high.corr.cols
-# Las usaremos mas adelante en la RLM_BEST
+# Las usaremos mas adelante en la RLM.high.corr
 
 
