@@ -10,7 +10,7 @@ library(pls) # pcr, pls
 library(glmnet) # ridge, lasso, elasticnet...
 library(caret) # reg. logistica confusionMatrix
 
-####### FASE: IMPORT Y PREPROCESS
+####### FASE BEGIN: IMPORT Y PREPROCESS
 datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/meidPr/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
 dim(datos)
@@ -510,6 +510,24 @@ dwtest(RLM_regsubsets.box.cox) # cumple
 
 summary(RLM_regsubsets.box.cox)
 
+# Quitamos las que tienen p-valor > 0.5 
+colsCoef0 = c("Communication.Expenditure", "Crop.Farming.and.Gardening.expenses", "Members.with.age.less.than.5.year.old", "Number.of.Airconditioner")
+colsCoef0Ind = c()
+for (col in colsCoef0) {
+  indR = grep(col, colnames(data.rest))
+  colsCoef0Ind = c(colsCoef0Ind, indR)
+}
+
+RLM_regsubsets.box.cox.sin.coef0 <- lm(Total.Household.Income ~ ., data=data.rest[, -colsCoef0Ind])
+
+# Veamos los tests.
+residuos<-RLM_regsubsets.box.cox.sin.coef0$residuals
+lillie.test(residuos)  # p-valor >= 0.5, cumple
+#homocedatsicidad
+bptest(RLM_regsubsets.box.cox.sin.coef0) # no cumple
+##independencia
+dwtest(RLM_regsubsets.box.cox.sin.coef0) # cumple
+
 # transformamos a partir de lambdas
 data_test.transformed = data_test
 for (c in colnames(lambdas)) {
@@ -526,7 +544,7 @@ for (c in colnames(lambdas)) {
 }
 
 # Intentamos predecir (error sobre data_test)
-RLM_regsubsets.predict = predict(RLM_regsubsets.box.cox,data_test.transformed)
+RLM_regsubsets.predict = predict(RLM_regsubsets.box.cox.sin.coef0,data_test.transformed)
 # raiz del error cuadratico medio de la prediccion
 
 lambda = lambdas[1,"Total.Household.Income"] # para convertir el error a algo entendible
@@ -536,6 +554,7 @@ errores = (data_test$Total.Household.Income - pred.transf)
 
 RLM_regsubsets.error = (sum(errores ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # Error cosmico
+# Nota: Hemos intentado realizar regsubsets sobre este modelo, pero el resultado solo empeora
 
 
 
@@ -543,7 +562,7 @@ RLM_regsubsets.error # Error cosmico
 
 
 
-# Era para probar la normalidad del modelo high corr, no ha funcionado...
+# Esto era para probar la normalidad del modelo high corr, no ha mejorado el p-valor...
 # data.copy.transform = data.copy[, high.corr.cols]
 # 
 # x<-data.copy.transform$Total.Household.Income
@@ -694,6 +713,14 @@ RLM_RIDGE.pred<-predict(RLM_RIDGE,s=bestlam,newx=x.test)
 # Calculamos error de test
 (RLM_RIDGE.error = sqrt(mean((RLM_RIDGE.pred-y.test)^2))) # 154438.2
 
+# Calculamos r 2 adjusted
+y = y.test
+yhat = RLM_RIDGE.pred
+R.squared = 1 - sum((y-yhat)^2)/sum((y-mean(y))^2)
+n = length(yhat)
+p = dim(x.train)[2]
+(adj.r.squared = 1 - (1 - R.squared) * ((n - 1)/(n-p-1)))
+
 # Lasso alpha = 1
 RLM_LASSO<-glmnet(x.train,y.train,alpha=1)
 
@@ -716,6 +743,14 @@ out<-glmnet(x.train,y.train,alpha=1,lambda=bestlam)
 lasso.coef<-predict(out,type="coefficients",s=bestlam)
 lasso.coef
 length(lasso.coef[lasso.coef!=0]) # Quedaron 30 variables de 38 iniciales
+
+# Calculamos r 2 adjusted
+y = y.test
+yhat = RLM_LASSO.pred
+R.squared = 1 - sum((y-yhat)^2)/sum((y-mean(y))^2)
+n = length(yhat)
+p = length(lasso.coef[lasso.coef!=0])
+(adj.r.squared = 1 - (1 - R.squared) * ((n - 1)/(n-p-1)))
 
 # Elasticnet
 # Suponemos que glmnet por debajo usa algo asi:
@@ -756,6 +791,14 @@ elasnet.coef<-predict(out,type="coefficients",s=minimo$lambda)
 elasnet.coef
 length(elasnet.coef[elasnet.coef!=0]) # Quedaron 31 variables de 38 iniciales
 
+# Calculamos r 2 adjusted
+y = y.test
+n = length(yhat)
+R.squared = 1 - (minimo$mse * n/sum((y-mean(y))^2))
+
+p = length(lasso.coef[lasso.coef!=0])
+(adj.r.squared = 1 - (1 - R.squared) * ((n - 1)/(n-p-1)))
+
 ####### FASE END: RLM REGULARIZADA
 
 ####### FASE BEGIN: PCR y PLS
@@ -780,13 +823,6 @@ validationplot(RLM_PCR)
 RLM_PCR.pred<-predict(RLM_PCR,data_test,ncomp=12)
 RLM_PCR.error = sqrt(mean((RLM_PCR.pred-data_test$Total.Household.Income)^2))
 RLM_PCR.error # 199790.6
-
-y = data_test$Total.Household.Income
-yhat = RLM_PCR.pred
-R.squared = 1 - sum((y-yhat)^2)/sum((y-mean(y))^2)
-n = length(data_test$Total.Household.Income)
-p = dim(data.pca)[2] - 1 # resto uno por la respuesta
-adj.r.squared = 1 - (1 - R.squared) * ((n - 1)/(n-p-1))
 
 # PLS
 set.seed(1)
@@ -835,8 +871,8 @@ summary(glm.fits)
 glm.probs<-predict(glm.fits,type="response") #Calculamos la probabilidad de que la familia pueda acceder a préstamo
 Income = datos.log.test$Total.Household.Income 
 contrasts(Income)
-glm.pred<-rep("Accept",length(Income)) #Crea un vector con 6007 elementos "Accept"
-glm.pred[glm.probs>.5]="Deny" #Transforma en Deny todos los elementos donde la probabilidad predicha<0.5
+glm.pred<-rep("Accept",length(Income)) # Crea un vector con todos elementos "Accept"
+glm.pred[glm.probs>.5]="Deny" # Transforma en Deny todos los elementos donde la probabilidad predicha>0.5
 
 glm.pred<-as.factor(glm.pred)
 confusionMatrix(glm.pred,Income)
@@ -857,8 +893,8 @@ summary(glm.fits)
 glm.probs<-predict(glm.fits,type="response") #Calculamos la probabilidad de que la familia pueda acceder a préstamo
 Income = datos.log.test$Total.Household.Income 
 contrasts(Income)
-glm.pred<-rep("Accept",length(Income)) #Crea un vector con 6007 elementos "Accept"
-glm.pred[glm.probs>.5]="Deny" #Transforma en Deny todos los elementos donde la probabilidad predicha<0.5
+glm.pred<-rep("Accept",length(Income)) #Crea un vector con todos elementos "Accept"
+glm.pred[glm.probs>.5]="Deny" # Transforma en Deny todos los elementos donde la probabilidad predicha > 0.5
 
 glm.pred<-as.factor(glm.pred)
 confusionMatrix(glm.pred,Income) #Realizamos la matriz de confusion
