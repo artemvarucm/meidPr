@@ -3,8 +3,8 @@
 # PCR
 
 library(pls)
-# usamos solo columnas numericas, no quitamos las autocorrelacionadas
-data.numeric = data_train[sapply(data_train, is.numeric)]
+# usamos todas las columnas numericas, no quitamos las autocorrelacionadas
+data.numeric = data_train
 
 set.seed(2)
 RLM_PCR<-pcr(Total.Household.Income~.,data=data.numeric,scale=TRUE,validation="CV")

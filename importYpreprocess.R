@@ -106,6 +106,8 @@ for (col in aggrCols) {
   datos.sin.out = datos.sin.out[, -indR]
 }
 
+rownames(datos.sin.out)=1:nrow(datos.sin.out) # renombramos indices
+
 
 
 
