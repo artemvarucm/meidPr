@@ -274,7 +274,7 @@ for (c in colnames(data.copy[, -indR])) {
         upperBound = quantile(transf.col, 0.75) + 1.5*IQR
         data.copy = data.copy[data.copy[,c] < upperBound,]
         data.copy = data.copy[data.copy[,c] > lowerBound,]
-        
+        rownames(data.copy) = 1:nrow(data.copy) # renombramos indices
         RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy)
         if (lillie.test(RLM_regsubsets.box.cox$residuals)$p.value > 0.0001) {
           break
@@ -292,33 +292,48 @@ bptest(RLM_regsubsets.box.cox) # no cumple
 ##independencia
 dwtest(RLM_regsubsets.box.cox) # cumple
 
-# No hemos conseguido que den la normalidad, no tiene sentido seguir
+# Quitamos observaciones influyentes
+car::influenceIndexPlot(RLM_regsubsets.box.cox, vars="student")
+rest = rstudent(RLM_regsubsets.box.cox)
+outliers=c(which(rest < -2),which(rest > 2))
+data.rest = data.copy[-outliers,]
+rownames(data.rest)=1:nrow(data.rest) # renombramos indices
 
+RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.rest)
+lillie.test(RLM_regsubsets.box.cox$residuals)
 
+# Veamos los tests.
+residuos<-RLM_regsubsets.box.cox$residuals
+lillie.test(residuos)  # p-valor = 0.5, cumple
+#homocedatsicidad
+bptest(RLM_regsubsets.box.cox) # no cumple
+##independencia
+dwtest(RLM_regsubsets.box.cox) # cumple
 
+# transformamos a partir de lambdas
+data_test.transformed = data_test
+for (c in colnames(lambdas)) {
+  x = data_test.transformed[, c]
+  if (any(x == 0)) {
+    # reemplazamos los 0 con algo muy proximo a ello
+    # porque logaritmo de 0 no existe
+    x[x == 0] = 1e-20
+  }
+  b<-boxcox(lm(x~1))
+  lambda = lambdas[1,c]
+  transf.col<-(x^lambda-1)/lambda # transformamos la variable respuesta
+  data_test.transformed[,c] = transf.col # cambiamos la variable respuesta en el dataset
+}
 
+# Intentamos predecir (error sobre data_test)
+RLM_regsubsets.predict = predict(RLM_regsubsets.box.cox,data_test.transformed)
+# raiz del error cuadratico medio de la prediccion
 
+lambda = lambdas[1,"Total.Household.Income"] # para convertir el error a algo entendible
+# deshacemos box cox
+pred.transf = abs(RLM_regsubsets.predict * lambda + 1) ^ (1/lambda)
+errores = (data_test$Total.Household.Income - pred.transf)
 
-
-
-
-
-
-
-
-# 5.8 Calculamos el error cuadratico medio del modelo hallado
-# Error cuadratico medio del modelo sobre TEST
-# gracias al abs, no da NA, y tampoco afecta, pues el salario es siempre positivo
-# Si no, da error NA por intentar hacer raices pares sobre un termino negativo
-#RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,data_test) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-#RLM_regsubsets.error = sqrt(sum((data_test$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
-#RLM_regsubsets.error
-
-# Error cuadratico medio del modelo sobre modelo Completo
-#RLM_regsubsets.pred = abs(predict(RLM_regsubsets.box.cox,datos.sin.out) * lambda + 1) ^ (1/lambda) # deshacemos box-cox
-#RLM_regsubsets.error = sqrt(sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.pred) ^ 2)/length(RLM_regsubsets.pred))
-#RLM_regsubsets.error
+RLM_regsubsets.error = (sum(errores ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
+RLM_regsubsets.error 
 # Error cosmico...
-
-
-
