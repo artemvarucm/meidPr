@@ -65,7 +65,8 @@ RLM_high.cor.predict = predict(RLM_high.cor,data_test)
 RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 RLM_high.cor.error # 269037.3
 # En este caso ha mejorado. 
-# Nos quedamos con este modelo, pero no nos interesa seguir con este modelo. Error bastante critico
+# Nos quedamos con este modelo, pero no nos interesa seguir con este modelo. 
+# Error bastante critico
 
 # Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
 
@@ -213,9 +214,6 @@ dwtest(RLM_regsubsets.box.cox) # cumple
 
 # Transformamos las variables explicativas
 # Guardamos lambda para las columnas, para la prediccion posterior
-#lambdas = data.frame("Total.Household.Income"=c(lambda))
-# Transformamos las variables explicativas
-# Guardamos lambda para las columnas, para la prediccion posterior
 lambdas = data.frame("Total.Household.Income"=c(lambda))
 
 
@@ -258,7 +256,7 @@ for (c in colnames(data.copy[, -indR])) {
         data.copy = data.copy[data.copy[,c] > lowerBound,]
         rownames(data.copy) = 1:nrow(data.copy) # renombramos indices
         RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.copy)
-        if (lillie.test(RLM_regsubsets.box.cox$residuals)$p.value > 0.0001) {
+        if (lillie.test(RLM_regsubsets.box.cox$residuals)$p.value > 0.05) {
           break
         }
       }
@@ -319,3 +317,134 @@ errores = (data_test$Total.Household.Income - pred.transf)
 
 RLM_regsubsets.error = (sum(errores ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # Error cosmico
+
+
+
+
+
+
+
+# Era para probar la normalidad del modelo high corr, no ha funcionado...
+# data.copy.transform = data.copy[, high.corr.cols]
+# 
+# x<-data.copy.transform$Total.Household.Income
+# sum(x <= 0) # 0 - se puede aplicar box cox
+# b<-boxcox(lm(x~1))
+# lambda<-b$x[which.max(b$y)]
+# # El valor de lambda que usaremos
+# lambda
+# ynew<-(x^lambda-1)/lambda # transformamos la variable respuesta
+# 
+# data.copy.transform$Total.Household.Income = ynew # cambiamos la variable respuesta en el dataset
+# 
+# RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.transform) # formamos nuevo modelo
+# 
+# 
+# # Veamos los tests.
+# residuos<-RLM_high.cor.box.cox$residuals
+# lillie.test(residuos) # no cumple
+# #homocedatsicidad
+# bptest(RLM_high.cor.box.cox) # no cumple
+# ##independencia
+# dwtest(RLM_high.cor.box.cox) # cumple
+# 
+# # Quitamos outliers segun variable respuesta, es simetrica ahora
+# skewness(ynew) # simetrica
+# boxplot(ynew) 
+# IQR = quantile(ynew, 0.75) - quantile(ynew, 0.25)
+# # Limite inferior
+# lowerBound = quantile(ynew, 0.25) - 1.5*IQR
+# # Limite superior
+# upperBound = quantile(ynew, 0.75) + 1.5*IQR
+# data.copy.transform = data.copy.transform[ynew < upperBound,]
+# ynew = ynew[ynew < upperBound]
+# data.copy.transform = data.copy.transform[ynew > lowerBound,]
+# RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.transform) # formamos nuevo modelo
+# 
+# # Veamos los tests.
+# residuos<-RLM_high.cor.box.cox$residuals
+# lillie.test(residuos) # no cumple
+# #homocedatsicidad
+# bptest(RLM_high.cor.box.cox) # no cumple
+# ##independencia
+# dwtest(RLM_high.cor.box.cox) # cumple
+# 
+# 
+# # Transformamos las variables explicativas
+# # Guardamos lambda para las columnas, para la prediccion posterior
+# lambdas = data.frame("Total.Household.Income"=c(lambda))
+# 
+# 
+# indR = grep("Total.Household.Income", colnames(data.copy.transform)) # la respuesta ya esta transformada
+# 
+# for (c in colnames(data.copy.transform[, -indR])) {
+#   print(c)
+#   if (abs(skewness(data.copy.transform[,c])) < 2 && !any(data.copy.transform[,c] < 0)) { # si no es simetrica, transformamos
+#     # box cox no vale para valores negativos o cero
+#     x = data.copy.transform[,c]
+#     if (any(x == 0)) {
+#       # reemplazamos los 0 con algo muy proximo a ello
+#       # porque logaritmo de 0 no existe
+#       x[x == 0] = 1e-20
+#     }
+#     
+#     b<-boxcox(lm(x~1))
+#     lambda<-b$x[which.max(b$y)]
+#     lambdas = cbind(lambdas, c(lambda))
+#     colnames(lambdas)[length(colnames(lambdas))] = c # renombramos nueva columna
+#     transf.col<-(x^lambda-1)/lambda # transformamos la variable respuesta
+#     
+#     data.copy.transform[,c] = transf.col # cambiamos la variable respuesta en el dataset
+#     # reconstruimos modelo
+#     RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.transform)
+#     if (lillie.test(RLM_high.cor.box.cox$residuals)$p.value > 0.05) {
+#       break
+#     } else {
+#       
+#       print("lillie-test p-value")
+#       print(lillie.test(RLM_high.cor.box.cox$residuals)$p.value)
+#       # quitamos outliers
+#       IQR = quantile(transf.col, 0.75) - quantile(transf.col, 0.25)
+#       if (IQR > 0) {
+#         # Limite inferior
+#         lowerBound = quantile(transf.col, 0.25) - 1.5*IQR
+#         # Limite superior
+#         upperBound = quantile(transf.col, 0.75) + 1.5*IQR
+#         data.copy.transform = data.copy.transform[data.copy.transform[,c] < upperBound,]
+#         data.copy.transform = data.copy.transform[data.copy.transform[,c] > lowerBound,]
+#         rownames(data.copy.transform) = 1:nrow(data.copy.transform) # renombramos indices
+#         RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.copy.transform)
+#         if (lillie.test(RLM_high.cor.box.cox$residuals)$p.value > 0.0001) {
+#           break
+#         }
+#       }
+#     }
+#   }
+# }
+# 
+# # Veamos los tests.
+# residuos<-RLM_high.cor.box.cox$residuals
+# 
+# lillie.test(residuos) # no cumple
+# #homocedatsicidad
+# bptest(RLM_high.cor.box.cox) # no cumple
+# ##independencia
+# dwtest(RLM_high.cor.box.cox) # cumple
+# 
+# 
+# # Quitamos observaciones influyentes
+# car::influenceIndexPlot(RLM_high.cor.box.cox, vars="student")
+# rest = rstudent(RLM_high.cor.box.cox)
+# outliers=c(which(rest < -3),which(rest > 3))
+# data.rest = data.copy.transform[-outliers,]
+# rownames(data.rest)=1:nrow(data.rest) # renombramos indices
+# 
+# RLM_high.cor.box.cox <- lm(Total.Household.Income ~ ., data=data.rest)
+# 
+# # Veamos los tests.
+# residuos<-RLM_high.cor.box.cox$residuals
+# lillie.test(residuos)  # p-valor = 0.5, cumple
+# #homocedatsicidad
+# bptest(RLM_high.cor.box.cox) # no cumple
+# ##independencia
+# dwtest(RLM_high.cor.box.cox) # cumple
