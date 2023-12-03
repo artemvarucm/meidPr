@@ -163,6 +163,8 @@ RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
 RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # 140866.3
 # El error ha reducido, prediccion mejor. nos quedamos con este modelo
+# Estudiamos la colinealidad
+vif(RLM_regsubsets)
 
 summary(RLM_regsubsets)
 

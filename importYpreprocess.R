@@ -10,7 +10,7 @@ library(moments) # skewness
 library(car) # influenceIndexPlot, vif...
 library(pls) # pcr, pls
 library(glmnet) # ridge, lasso, elasticnet...
-
+library(caret) # reg. logistica confusionMatrix
 
 datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/meidPr/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 

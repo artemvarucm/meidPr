@@ -1,7 +1,4 @@
 
-install.packages("caret") #si no se ha instalado previamente
-library(caret)
-
 datos.log = datos.sin.out #Copiamos los datos originales 
 datos.log["Total.Number.of.Family.members"] = total.num.fam.mem
 datos.log$Total.Household.Income = datos.log$Total.Household.Income / 12 #Calculamos el sueldo mensual
@@ -58,15 +55,7 @@ confusionMatrix(glm.pred,Income) #Realizamos la matriz de confusion
 
 #Validacion cruzada
 folds <- createFolds(datos.log.train$Total.Household.Income, k = 20) #creamos los 20 folds
-model<-train(   Total.Household.Income~ Bread.and.Cereals.Expenditure + Meat.Expenditure + Total.Fish.and..marine.products.Expenditure
-                + Fruit.Expenditure + Vegetables.Expenditure + Restaurant.and.hotels.Expenditure + Alcoholic.Beverages.Expenditure + Tobacco.Expenditure + Clothing..Footwear.and.Other.Wear.Expenditure
-                + Housing.and.water.Expenditure + Medical.Care.Expenditure + Transportation.Expenditure + Communication.Expenditure 
-                + Education.Expenditure + Miscellaneous.Goods.and.Services.Expenditure + Special.Occasions.Expenditure + Crop.Farming.and.Gardening.expenses 
-                + Total.Income.from.Entrepreneurial.Acitivites + Household.Head.Age + Total.Number.of.Family.members + Members.with.age.less.than.5.year.old
-                + Members.with.age.5...17.years.old + House.Floor.Area + House.Age + Number.of.bedrooms + Number.of.Television + Number.of.CD.VCD.DVD + Number.of.Component.Stereo.set
-                + Number.of.Refrigerator.Freezer + Number.of.Washing.Machine + Number.of.Airconditioner + Number.of.Car..Jeep..Van + Number.of.Landline.wireless.telephones
-                + Number.of.Cellular.phone + Number.of.Personal.Computer + Number.of.Stove.with.Oven.Gas.Range + Number.of.Motorized.Banca + Number.of.Motorcycle.Tricycle,
-                
+model<-train(   Total.Household.Income ~ .,
                 data=datos.log.train,
                 method="glm",
                 family=binomial,
