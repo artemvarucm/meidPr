@@ -7,6 +7,11 @@ library(lmtest) # test homoscedasticidad
 library(MASS) # box-cox
 library(leaps) # regsubsets
 library(moments) # skewness
+library(car) # influenceIndexPlot, vif...
+library(pls) # pcr, pls
+library(glmnet) # ridge, lasso, elasticnet...
+
+
 datos <- read.table(file = "/Users/tyomikjan/UNIVERSITY/R/TRABAJO DATOS/meidPr/Family Income and Expenditure.csv", fill = TRUE, header = TRUE, sep = ",")
 
 # IMPORTANTE CUASIVARIANZA O VARIANZA

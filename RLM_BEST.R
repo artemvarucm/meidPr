@@ -17,7 +17,7 @@ rownames(data_test)=1:nrow(data_test) # renombramos indices
 
 
 
-# Regresion multiple
+# Regresion lineal multiple
 
 # Primero intentamos usar las columnas altamente correlacionadas con Total.Household.Income, 
 # (estan en high.corr.cols)
@@ -35,14 +35,6 @@ RLM_high.cor.error # 272143.5
 # RLM_high.cor.error = (sum((datos.sin.out$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 # RLM_high.cor.error # 235121.1
 
-# Veamos los tests.
-residuos<-RLM_high.cor$residuals
-lillie.test(residuos) # no cumple
-#homocedatsicidad
-bptest(RLM_high.cor) # no cumple
-##independencia
-dwtest(RLM_high.cor) # cumple
-
 # Quitamos obsevaciones influyentes
 # Viendo el grafico, vamos a realizar una limieza de residuos menores que -8 y mayores que 8 (simetrico)
 # outlierTest no se puede usar, pues no son normales las variables
@@ -52,17 +44,16 @@ outliers=c(which(rEst>8),which(rEst<(-8)))
 data.copy = data_train[-outliers,]
 rownames(data.copy)=1:nrow(data.copy) # renombramos indices
 
-RLM_high.cor = lm(Total.Household.Income ~., data = data.copy[, high.corr.cols])
+RLM_high.cor.rest = lm(Total.Household.Income ~., data = data.copy[, high.corr.cols])
 
 # Intentamos predecir (error sobre data_test)
-RLM_high.cor.predict = predict(RLM_high.cor,data_test)
+RLM_high.cor.predict = predict(RLM_high.cor.rest,data_test)
 # raiz del error cuadratico medio de la prediccion
 RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 RLM_high.cor.error # 272512.1 
 # El error ha aumentado, prediccion peor
 # Las observaciones que hemos quitado no fueron correctas
-# Volvemos el modelo anterior
-RLM_high.cor = lm(Total.Household.Income ~., data = data_train[, high.corr.cols])
+# Descartamos esta eliminacion de obs. influyentes
 
 # Quitamos observaciones influyentes con alto leverage
 car::influenceIndexPlot(RLM_high.cor, vars="hat")
@@ -78,7 +69,8 @@ RLM_high.cor.predict = predict(RLM_high.cor,data_test)
 # raiz del error cuadratico medio de la prediccion
 RLM_high.cor.error = (sum((data_test$Total.Household.Income - RLM_high.cor.predict) ^ 2)/length(RLM_high.cor.predict)) ^ 0.5
 RLM_high.cor.error # 269037.3
-# En este caso ha mejorado. Nos quedamos con este modelo. No nos interesa seguir con este modelo. Error bastante critico
+# En este caso ha mejorado. 
+# Nos quedamos con este modelo, pero no nos interesa seguir con este modelo. Error bastante critico
 
 # 5.1 Cross Validation + Regsubsets para encontrar el mejor modelo (best.RLM)
 ##LOOCV
@@ -133,13 +125,10 @@ RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
 RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # 147132.9
 
-# Intentamos predecir (sobre todo el modelo de datos)
-RLM_regsubsets.predict = predict(RLM_regsubsets,datos.sin.out)
-RLM_regsubsets.error = (sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
-RLM_regsubsets.error # 173931.8
-
-
-
+# # Intentamos predecir (sobre todo el modelo de datos)
+# RLM_regsubsets.predict = predict(RLM_regsubsets,datos.sin.out)
+# RLM_regsubsets.error = (sum((datos.sin.out$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
+# RLM_regsubsets.error # 173931.8
 
 
 # Quitamos obsevaciones influyentes
@@ -174,6 +163,8 @@ RLM_regsubsets.predict = predict(RLM_regsubsets,data_test)
 RLM_regsubsets.error = (sum((data_test$Total.Household.Income - RLM_regsubsets.predict) ^ 2)/length(RLM_regsubsets.predict)) ^ 0.5
 RLM_regsubsets.error # 140866.3
 # El error ha reducido, prediccion mejor. nos quedamos con este modelo
+
+summary(RLM_regsubsets)
 
 # Veamos los tests.
 residuos<-RLM_regsubsets$residuals
@@ -300,7 +291,6 @@ data.rest = data.copy[-outliers,]
 rownames(data.rest)=1:nrow(data.rest) # renombramos indices
 
 RLM_regsubsets.box.cox <- lm(Total.Household.Income ~ ., data=data.rest)
-lillie.test(RLM_regsubsets.box.cox$residuals)
 
 # Veamos los tests.
 residuos<-RLM_regsubsets.box.cox$residuals
@@ -309,6 +299,8 @@ lillie.test(residuos)  # p-valor = 0.5, cumple
 bptest(RLM_regsubsets.box.cox) # no cumple
 ##independencia
 dwtest(RLM_regsubsets.box.cox) # cumple
+
+summary(RLM_regsubsets.box.cox)
 
 # transformamos a partir de lambdas
 data_test.transformed = data_test
